@@ -14,6 +14,7 @@ const MapComponent = () => {
     const script = document.createElement('script');
     script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=2aec7833541a78e29205ed35ce2d1a53&autoload=false&libraries=services`;
     script.async = true;
+    
     //초기 지도 그리기
     script.onload = () => {
       window.kakao.maps.load(() => {
@@ -43,7 +44,8 @@ const MapComponent = () => {
     };
     document.head.appendChild(script);
   }, []);
-  //서버에 SSE 연결 해제 요청 전송
+
+  // 서버에 SSE 연결 해제 요청 전송
   const disconnectSSE = async () => {
     if (eventSourceRef.current) {
       console.log('🔌 SSE 연결 종료 시도 중...');
@@ -73,6 +75,7 @@ const MapComponent = () => {
       console.log('🗺 기존 오버레이가 제거되었습니다.');
     }
   };
+
   //검색 로직
   const handleSearch = () => {
     if (!searchKeyword.trim()) {
@@ -107,7 +110,7 @@ const MapComponent = () => {
 
         const bounds = new window.kakao.maps.LatLngBounds();
         const newMarkers = data.map(place => {
-        const position = new window.kakao.maps.LatLng(place.y, place.x);
+          const position = new window.kakao.maps.LatLng(place.y, place.x);
           const marker = new window.kakao.maps.Marker({ map: map, position: position });
           //검색된 데이터가 10개 초과인 경우 SSE 연결 없이 검색결과(마커)를 지도에 표시
           if (data.length > 10) {
@@ -122,14 +125,29 @@ const MapComponent = () => {
                 connectToSSE(userId, [place]);
               });
             });
-          } else {
-            const overlay = new window.kakao.maps.CustomOverlay({
+          } 
+          else {
+            let overlayContent = `
+              <div class="customoverlay">
+                <a href="${place.place_url}" target="_blank"> 
+                  <span class="title">${place.place_name}</strong><br/>대기 인원: ${place.waiting}</span>
+                </a>
+              </div>`;
+
+            if (place.myWaiting !== undefined && place.myWaiting !== -1) {
+              overlayContent += `<br/>나의 대기 순위: ${place.myWaiting}`;
+            }
+            if (place.waitingTime !== undefined && place.waitingTime !== -1) {
+              overlayContent += `<br/>나의 예상 대기 시간: ${place.waitingTime}`;
+            }
+          
+            const customOverlay = new window.kakao.maps.CustomOverlay({
               position: position,
-              yAnchor: 1.5,
-              content: `<div style="background: rgba(255,255,255,0.9); padding: 5px; border-radius: 5px; font-size: 12px; text-align: center;">${place.place_name}</div>`
+              yAnchor: 0,
+              content: overlayContent
             });
-            overlay.setMap(null);
-            sseOverlaysRef.current.set(place.id, overlay);
+            customOverlay.setMap(map);
+            sseOverlaysRef.current.set(place.id, customOverlay);
           }
 
           bounds.extend(position);
@@ -145,6 +163,7 @@ const MapComponent = () => {
       }
     });
   };
+
   //SSE 연결 함수
   const connectToSSE = (userId, data) => {
     const params = new URLSearchParams();
@@ -175,7 +194,6 @@ const MapComponent = () => {
       eventSourceRef.current.close();
     };
   };
-
   
   //첫 연결 시, 연결에 넣은 식당에 대한 실시간 대기열 표시, 식당이 1개일 경우 나의 대기 순번과 대기 예상시간 까지 표시(대기 중이 아닐 경우 안나옴)
   const updateMapWithWaitingData = (data) => {
@@ -195,27 +213,28 @@ const MapComponent = () => {
   
       const position = new window.kakao.maps.LatLng(parseFloat(item.y), parseFloat(item.x));
       const marker = new window.kakao.maps.Marker({ map: map, position: position });
-  
-      let overlayContent = `<div style="background: rgba(255,255,255,0.9); padding: 5px; border-radius: 5px; font-size: 12px; text-align: center;">
-        <strong>${item.restaurantName}</strong><br/>대기 인원: ${item.waiting}`;
-  
-      if (item.myWaiting !== null && item.myWaiting !== -1) {
+
+      let overlayContent = `
+        <div class="customoverlay">
+          <a href="${item.place_url}" target="_blank"> 
+            <span class="title">${item.place_name}</strong><br/>대기 인원: ${item.waiting}</span>
+          </a>
+        </div>`;
+
+      if (item.myWaiting !== undefined && item.myWaiting !== -1) {
         overlayContent += `<br/>나의 대기 순위: ${item.myWaiting}`;
       }
-
-      if (item.waitingTime !== null&&item.waitingTime!==-1) {
+      if (item.waitingTime !== undefined && item.waitingTime !== -1) {
         overlayContent += `<br/>나의 예상 대기 시간: ${item.waitingTime}`;
       }
   
-      overlayContent += `</div>`;
-  
-      const overlay = new window.kakao.maps.CustomOverlay({
+      const customOverlay = new window.kakao.maps.CustomOverlay({
         position: position,
-        yAnchor: 1.5,
+        yAnchor: 0,
         content: overlayContent
       });
       
-      overlay.setMap(map);
+      customOverlay.setMap(map);
   
 
       marker.addListener("click", () => {
@@ -233,7 +252,7 @@ const MapComponent = () => {
     });
 
     sseMarkersRef.current.set(item.restaurantId, marker);
-    sseOverlaysRef.current.set(item.restaurantId, overlay);
+    sseOverlaysRef.current.set(item.restaurantId, customOverlay);
 
     });
   };
@@ -255,30 +274,31 @@ const MapComponent = () => {
   
     const position = new window.kakao.maps.LatLng(parseFloat(updateData.y), parseFloat(updateData.x));
     const marker = new window.kakao.maps.Marker({ map: map, position: position });
-  
-    let overlayContent = `<div style="background: rgba(255,255,255,0.9); padding: 5px; border-radius: 5px; font-size: 12px; text-align: center;">
-      <strong>${updateData.restaurantName}</strong><br/>대기 인원: ${updateData.waiting}`;
-  
-    if (updateData.myWaiting !== null&&updateData.myWaiting!==-1) {
-      overlayContent += `<br/>나의 대기 순위: ${updateData.myWaiting}`;
-    }
 
-    if (updateData.waitingTime !== null&&updateData.waitingTime!==-1) {
-      overlayContent += `<br/>나의 예상 대기 시간: ${updateData.waitingTime}`;
-    }
+    let overlayContent = `
+        <div class="customoverlay">
+          <a href="${updateData.place_url}" target="_blank"> 
+            <span class="title">${updateData.place_name}</strong><br/>대기 인원: ${updateData.waiting}</span>
+          </a>
+        </div>`;
+
+      if (updateData.myWaiting !== undefined && updateData.myWaiting !== -1) {
+        overlayContent += `<br/>나의 대기 순위: ${updateData.myWaiting}`;
+      }
+      if (updateData.waitingTime !== undefined && updateData.waitingTime !== -1) {
+        overlayContent += `<br/>나의 예상 대기 시간: ${updateData.waitingTime}`;
+      }
   
-    overlayContent += `</div>`;
-  
-    const overlay = new window.kakao.maps.CustomOverlay({
+    const customOverlay = new window.kakao.maps.CustomOverlay({
       position: position,
-      yAnchor: 1.5,
+      yAnchor: 0,
       content: overlayContent
     });
   
-    overlay.setMap(map);
+    customOverlay.setMap(map);
   
     sseMarkersRef.current.set(updateData.restaurantId, marker);
-    sseOverlaysRef.current.set(updateData.restaurantId, overlay);
+    sseOverlaysRef.current.set(updateData.restaurantId, customOverlay);
   };
   
   //하단부에 검색된 식당 리스트 표시 (임시 검색 결과 확인용)
@@ -308,13 +328,3 @@ const MapComponent = () => {
 };
 
 export default MapComponent;
-
-
-
-
-
-
-
-
-
-
