@@ -201,11 +201,11 @@ const MapComponent = () => {
       let overlayContent = `<div style="background: rgba(255,255,255,0.9); padding: 5px; border-radius: 5px; font-size: 12px; text-align: center;">
         <strong>${item.restaurantName}</strong><br/>대기 인원: ${item.waiting}`;
   
-      if (item.myWaiting !== null && item.myWaiting !== -1) {
+      if (item.myWaiting !== null && item.myWaiting !== 0) {
         overlayContent += `<br/>나의 대기 순위: ${item.myWaiting}`;
       }
 
-      if (item.waitingTime !== null&&item.waitingTime!==-1) {
+      if (item.waitingTime !== null&&item.waitingTime!== 0) {
         overlayContent += `<br/>나의 예상 대기 시간: ${item.waitingTime}`;
       }
   
@@ -261,11 +261,11 @@ const MapComponent = () => {
     let overlayContent = `<div style="background: rgba(255,255,255,0.9); padding: 5px; border-radius: 5px; font-size: 12px; text-align: center;">
       <strong>${updateData.restaurantName}</strong><br/>대기 인원: ${updateData.waiting}`;
   
-    if (updateData.myWaiting !== null&&updateData.myWaiting!==-1) {
+    if (updateData.myWaiting !== null&&updateData.myWaiting!==0) {
       overlayContent += `<br/>나의 대기 순위: ${updateData.myWaiting}`;
     }
 
-    if (updateData.waitingTime !== null&&updateData.waitingTime!==-1) {
+    if (updateData.waitingTime !== null&&updateData.waitingTime!==0) {
       overlayContent += `<br/>나의 예상 대기 시간: ${updateData.waitingTime}`;
     }
   
