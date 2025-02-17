@@ -79,15 +79,15 @@ const MapComponent = () => {
       alert('검색어를 입력하세요!');
       return;
     }
-    //검색 시 새로운 지도가 나와야 함으로 현재 연결된 SSE 지도 해제
+
     if (eventSourceRef.current) {
       fetch(`http://localhost:8080/maps/disconnect/${userId}`, { method: 'POST' })
-        .then(() => {
-          eventSourceRef.current.close();
-          eventSourceRef.current = null;
-          console.log('SSE 연결 종료 요청 및 클라이언트 연결 종료됨');
-        })
-        .catch(error => console.error('SSE 종료 요청 실패:', error));
+          .then(() => {
+            eventSourceRef.current.close();
+            eventSourceRef.current = null;
+            console.log('SSE 연결 종료 요청 및 클라이언트 연결 종료됨');
+          })
+          .catch(error => console.error('SSE 종료 요청 실패:', error));
     }
 
     markers.forEach(({ marker }) => marker.setMap(null));
@@ -100,48 +100,50 @@ const MapComponent = () => {
     sseOverlaysRef.current.clear();
 
     const ps = new window.kakao.maps.services.Places();
-    //검색
     ps.keywordSearch(searchKeyword, (data, status) => {
       if (status === window.kakao.maps.services.Status.OK) {
-        setPlaces(data);
+        const filteredData = data.filter(place => place.category_group_code === "FD6");
 
+        if (filteredData.length === 0) {
+          alert("음식점 검색 결과가 없습니다.");
+          return;
+        }
+
+        setPlaces(filteredData);
         const bounds = new window.kakao.maps.LatLngBounds();
-        const newMarkers = data.map(place => {
-        const position = new window.kakao.maps.LatLng(place.y, place.x);
+        const newMarkers = filteredData.map(place => {
+          const position = new window.kakao.maps.LatLng(place.y, place.x);
           const marker = new window.kakao.maps.Marker({ map: map, position: position });
-          //검색된 데이터가 10개 초과인 경우 SSE 연결 없이 검색결과(마커)를 지도에 표시
-          if (data.length > 10) {
-            //검색된 마커를 클릭 시 그 음식점 조회 SSE 연결
-            window.kakao.maps.event.addListener(marker, 'click', () => {
-              if (!userId.trim()) {
-                alert('유저 ID를 입력하세요.');
-                return;
-              }
-              disconnectSSE().then(() => {
-                console.log("🔗 기존 SSE 연결 종료 후 새로운 SSE 연결 시작...");
-                connectToSSE(userId, [place]);
-              });
+
+          window.kakao.maps.event.addListener(marker, 'click', () => {
+            if (!userId.trim()) {
+              alert('유저 ID를 입력하세요.');
+              return;
+            }
+            disconnectSSE().then(() => {
+              console.log("🔗 기존 SSE 연결 종료 후 새로운 SSE 연결 시작...");
+              connectToSSE(userId, [place]);
             });
-          } else {
+          });
+
+          if (filteredData.length <= 10) {
             const overlay = new window.kakao.maps.CustomOverlay({
               position: position,
               yAnchor: 1.5,
               content: `<div style="background: rgba(255,255,255,0.9); padding: 5px; border-radius: 5px; font-size: 12px; text-align: center;">${place.place_name}</div>`
             });
-            overlay.setMap(null);
+            overlay.setMap(map);
             sseOverlaysRef.current.set(place.id, overlay);
           }
-
           bounds.extend(position);
           return { marker, id: place.id };
         });
 
         setMarkers(newMarkers);
         map.setBounds(bounds);
-        // 데이터가 10개 이하일 경우 모든 음식점을 SSE 연결
-        if (data.length <= 10 && userId) connectToSSE(userId, data);
+        if (filteredData.length <= 10 && userId) connectToSSE(userId, filteredData);
       } else {
-        alert('검색 결과가 없습니다.');
+        alert("검색 결과가 없습니다.");
       }
     });
   };
