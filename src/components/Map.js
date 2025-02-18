@@ -171,6 +171,7 @@ const MapComponent = () => {
     params.append('x', data.map(place => place.x).join(','));
     params.append('y', data.map(place => place.y).join(','));
     params.append('name', data.map(place => place.place_name).join(','));
+    params.append('placeUrl', data.map(place => place.place_url).join(','));
 
     const url = `http://localhost:8080/maps/${userId}?${params.toString()}`;
     eventSourceRef.current = new EventSource(url);
@@ -217,17 +218,20 @@ const MapComponent = () => {
   
       let overlayContent = `
         <div class="customoverlay">
-          <a href="${item.place_url}" target="_blank"> 
-            <span class="title">${item.place_name}</strong><br/>대기 인원: ${item.waiting}</span>
-          </a>
-        </div>`;
+          <a href="${item.placeUrl}" target="_blank"> 
+            <span class="title">${item.restaurantName}</strong><br/>대기 인원: ${item.waiting}</span>  
+          </a>`;
 
-      if (item.myWaiting !== undefined && item.myWaiting !== -1) {
-        overlayContent += `<br/>나의 대기 순위: ${item.myWaiting}`;
+        console.log(overlayContent);
+
+      if (item.myWaiting !== null && item.myWaiting > 0) {
+        overlayContent += `<span class="waiting">나의 대기 순위: ${item.myWaiting}</span>`;
       }
-      if (item.waitingTime !== undefined && item.waitingTime !== -1) {
-        overlayContent += `<br/>나의 예상 대기 시간: ${item.waitingTime}`;
+      if (item.waitingTime !== null && item.waitingTime > 0) {
+        overlayContent += `<span class="waiting">나의 예상 대기 시간: ${item.waitingTime}분</span>`;
       }
+
+      overlayContent += `</div>`;
   
       const customOverlay = new window.kakao.maps.CustomOverlay({
         position: position,
@@ -278,17 +282,18 @@ const MapComponent = () => {
   
     let overlayContent = `
         <div class="customoverlay">
-          <a href="${updateData.place_url}" target="_blank"> 
-            <span class="title">${updateData.place_name}</strong><br/>대기 인원: ${updateData.waiting}</span>
-          </a>
-        </div>`;
+          <a href="${updateData.placeUrl}" target="_blank"> 
+            <span class="title">${updateData.restaurantName}</strong><br/>대기 인원: ${updateData.waiting}</span>
+          </a>`;
 
-    if (updateData.myWaiting !== undefined && updateData.myWaiting !== -1) {
-      overlayContent += `<br/>나의 대기 순위: ${updateData.myWaiting}`;
+    if (updateData.myWaiting !== null && updateData.myWaiting > 0) {
+      overlayContent += `<span class="waiting">나의 대기 순위: ${updateData.myWaiting}`;
     }
-    if (updateData.waitingTime !== undefined && updateData.waitingTime !== -1) {
-      overlayContent += `<br/>나의 예상 대기 시간: ${updateData.waitingTime}`;
+    if (updateData.waitingTime !== null && updateData.waitingTime > 0) {
+      overlayContent += `<span class="waiting">나의 예상 대기 시간: ${updateData.waitingTime}분`;
     }
+
+    overlayContent += `</div>`;
   
     const customOverlay = new window.kakao.maps.CustomOverlay({
       position: position,
