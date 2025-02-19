@@ -48,7 +48,6 @@ const ReservationForm = () => {
     }
 
     const reservationData = {
-      userId: 1, // TODO: 세션에서 실제 사용자 ID 가져와야 함
       restaurantId: restaurant.restaurantId,
       reservationDate: date,
       reservationTime: time,
@@ -75,7 +74,6 @@ const ReservationForm = () => {
 
       navigate('/reservation-success', { 
         state: {
-            userId:  
           restaurant, 
           date, 
           time, 
