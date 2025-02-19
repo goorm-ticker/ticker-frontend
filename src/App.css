@@ -89,65 +89,61 @@ button {
 }
 
 .customoverlay {
-  position:relative;
-  bottom:85px;
-  border-radius:6px;
-  border: 1px solid #ccc;
-  border-bottom:2px solid #ddd;
-  float:left;
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 250px;
+  border-radius: 8px;
+  border: 2px solid #444;
+  background: white;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
 }
-.customoverlay:nth-of-type(n) {
-  border:0; 
-  box-shadow:0px 1px 2px #888;
-}
-.customoverlay a {
-  display:block;
-  text-decoration:none;
-  color:#000;
-  text-align:center;
-  border-radius:6px;
-  font-size:14px;
-  font-weight:bold;
-  overflow:hidden;
-  background: #d95050;
-  background: #d95050 url(https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/arrow_white.png) no-repeat right 14px center;
-}
+
 .customoverlay .title {
-  display:block;
-  text-align:center;
-  background:#fff;
-  margin-right:35px;
-  padding:10px 15px;
-  font-size:14px;
-  font-weight:bold;
+  display: block;
+  background: #f8f8f8;
+  padding: 8px;
+  border-bottom: 1px solid #ddd;
+  font-size: 16px;
+  font-weight: bold;
 }
-.customoverlay .waiting {
-  display:block;
-  text-align:center;
-  background:#fff;
-  margin-right:35px;
-  padding:10px 15px;
-  font-size:14px;
-  font-weight:bold;
-}
+
+.customoverlay .waiting, 
 .customoverlay .time {
-  display:block;
-  text-align:center;
-  background:#fff;
-  margin-right:35px;
-  padding:10px 15px;
-  font-size:14px;
-  font-weight:bold;
+  display: block;
+  background: #fff;
+  padding: 6px;
+  font-size: 14px;
 }
+
+.customoverlay .reserve-btn {
+  display: block;
+  margin-top: 8px;
+  padding: 6px;
+  background: green;
+  color: white;
+  font-size: 12px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+}
+
 .customoverlay:after {
-  content:'';
-  position:absolute;
-  margin-left:-12px;
-  left:50%;
-  bottom:-12px;
-  width:22px;
-  height:12px;
-  background:url('https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/vertex_white.png')
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -10px;
+  transform: translateX(-50%);
+  width: 22px;
+  height: 12px;
+  background: url('https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/vertex_white.png') no-repeat;
 }
 
 .primary:hover {
