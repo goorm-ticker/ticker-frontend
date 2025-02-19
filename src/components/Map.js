@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const MapComponent = () => {
   const [map, setMap] = useState(null);
@@ -8,7 +9,9 @@ const MapComponent = () => {
   const [userId, setUserId] = useState('');
   const eventSourceRef = useRef(null);
   const sseMarkersRef = useRef(new Map());
+
   const sseOverlaysRef = useRef(new Map());
+  const navigate = useNavigate();
 
   useEffect(() => {
     const script = document.createElement('script');
@@ -49,7 +52,7 @@ const MapComponent = () => {
     if (eventSourceRef.current) {
       console.log('🔌 SSE 연결 종료 시도 중...');
       try {
-        await fetch(`http://localhost:8080/maps/disconnect/${userId}`, { method: 'POST' });
+        await fetch(`http://localhost:8080/maps/disconnect/${userId}`, { method: 'POST', credentials : "include" });
         if (eventSourceRef.current) {
           eventSourceRef.current.close();
           eventSourceRef.current = null;
@@ -83,7 +86,7 @@ const MapComponent = () => {
     }
 
     if (eventSourceRef.current) {
-      fetch(`http://localhost:8080/maps/disconnect/${userId}`, { method: 'POST' })
+      fetch(`http://localhost:8080/maps/disconnect/${userId}`, { method: 'POST', credentials : "include" })
           .then(() => {
             eventSourceRef.current.close();
             eventSourceRef.current = null;
@@ -132,16 +135,21 @@ const MapComponent = () => {
             let overlayContent = `
               <div class="customoverlay">
                 <a href="${place.place_url}" target="_blank"> 
-                  <span class="title">${place.place_name}</strong><br/>대기 인원: ${place.waiting}</span>
+                <span class="title">${place.place_name}</strong>
                 </a>
-              </div>`;
-
+              `;
+              if (place.waiting !== undefined && place.waiting !== -1) {
+                overlayContent += `<br/>대기 인원: ${place.waiting}`;
+              }
             if (place.myWaiting !== undefined && place.myWaiting !== -1) {
               overlayContent += `<br/>나의 대기 순위: ${place.myWaiting}`;
             }
             if (place.waitingTime !== undefined && place.waitingTime !== -1) {
               overlayContent += `<br/>나의 예상 대기 시간: ${place.waitingTime}`;
             }
+            overlayContent += `<button id="reserve-btn-${place.restaurantId}" style="font-size:10px; margin-top: 3px; padding: 3px; background: green; color: white; border: none; cursor: pointer;">
+            예약
+          </button></div>`;
 
             const customOverlay = new window.kakao.maps.CustomOverlay({
               position: position,
@@ -152,6 +160,15 @@ const MapComponent = () => {
             sseOverlaysRef.current.set(place.id, customOverlay);
           }
           bounds.extend(position);
+          setTimeout(() => {
+            const button = document.getElementById(`reserve-btn-${place.restaurantId}`);
+            if (button) {
+              button.addEventListener('click', () => {
+                navigate(`/reservation/${place.restaurantId}`, { state: { restaurant: place } });
+              });
+            }
+          }, 500);
+
           return { marker, id: place.id };
         });
 
@@ -173,9 +190,8 @@ const MapComponent = () => {
     params.append('name', data.map(place => place.place_name).join(','));
     params.append('placeUrl', data.map(place => place.place_url).join(','));
 
-    const url = `http://localhost:8080/maps/${userId}?${params.toString()}`;
-    eventSourceRef.current = new EventSource(url);
-
+    const url = `http://localhost:8080/maps/${userId}?${params.toString()}`
+    eventSourceRef.current = new EventSource(url, { withCredentials: true });
     eventSourceRef.current.addEventListener('connect', (event) => {
       const data = JSON.parse(event.data);
       updateMapWithWaitingData(data);
@@ -215,10 +231,10 @@ const MapComponent = () => {
   
       const position = new window.kakao.maps.LatLng(parseFloat(item.y), parseFloat(item.x));
       const marker = new window.kakao.maps.Marker({ map: map, position: position });
-  
+      console.log(item);
       let overlayContent = `
         <div class="customoverlay">
-          <a href="${item.placeUrl}" target="_blank"> 
+          <a href="${item.placeUrl}" target="_blank"> </a>
             <span class="title">${item.restaurantName}</strong><br/>대기 인원: ${item.waiting}</span>  
           </a>`;
 
@@ -231,14 +247,23 @@ const MapComponent = () => {
         overlayContent += `<span class="waiting">나의 예상 대기 시간: ${item.waitingTime}분</span>`;
       }
 
-      overlayContent += `</div>`;
+      overlayContent += `<button id="reserve-btn-${item.restaurantId}" style="font-size:10px; margin-top: 3px; padding: 3px; background: green; color: white; border: none; cursor: pointer;">
+          예약
+        </button></div>`;
   
       const customOverlay = new window.kakao.maps.CustomOverlay({
         position: position,
         yAnchor: 0,
         content: overlayContent
       });
-      
+      setTimeout(() => {
+        const button = document.getElementById(`reserve-btn-${item.restaurantId}`);
+        if (button) {
+          button.addEventListener('click', () => {
+            navigate(`/reservation/${item.restaurantId}`, { state: { restaurant: item } });
+          });
+        }
+      }, 500);
       customOverlay.setMap(map);
   
 
@@ -250,9 +275,9 @@ const MapComponent = () => {
           return;
         }
         disconnectSSE().then(() => {
-          console.log("🔗 기존 SSE 연결 종료 후 새로운 SSE 연결 시작...");
-          connectToSSE(userId, [{ id: item.restaurantId, x: item.x, y: item.y, place_name: item.restaurantName }]);
-        });
+              console.log("🔗 기존 SSE 연결 종료 후 새로운 SSE 연결 시작...");
+              connectToSSE(userId, [{ id: item.restaurantId, x: item.x, y: item.y, place_name: item.restaurantName }]);
+      });
         
     });
 
@@ -293,7 +318,9 @@ const MapComponent = () => {
       overlayContent += `<span class="waiting">나의 예상 대기 시간: ${updateData.waitingTime}분`;
     }
 
-    overlayContent += `</div>`;
+    overlayContent += `<button id="reserve-btn-${updateData.restaurantId}" style="font-size:10px; margin-top: 3px; padding: 3px; background: green; color: white; border: none; cursor: pointer;">
+          예약
+        </button></div>`;
   
     const customOverlay = new window.kakao.maps.CustomOverlay({
       position: position,
@@ -305,8 +332,16 @@ const MapComponent = () => {
   
     sseMarkersRef.current.set(updateData.restaurantId, marker);
     sseOverlaysRef.current.set(updateData.restaurantId, customOverlay);
+    setTimeout(() => {
+      const button = document.getElementById(`reserve-btn-${updateData.restaurantId}`);
+      if (button) {
+        button.addEventListener('click', () => {
+          navigate(`/reservation/${updateData.restaurantId}`, { state: { restaurant: updateData } });
+        });
+      }
+    }, 500);
   };
-  
+
   //하단부에 검색된 식당 리스트 표시 (임시 검색 결과 확인용)
   return (
     <div>
@@ -315,21 +350,36 @@ const MapComponent = () => {
         <input type="text" value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="유저 ID 입력" style={{ width: '20%', padding: '8px', marginLeft: '10px', fontSize: '16px' }} />
         <button onClick={handleSearch} style={{ padding: '8px 16px', marginLeft: '10px', fontSize: '16px', cursor: 'pointer' }}>검색</button>
       </div>
-      <div id="map" style={{ width: '100%', height: '500px', border: '1px solid #000' }}></div>
-      <div style={{ padding: '10px' }}>
-        <h2>검색 결과</h2>
-        <ul>
+      <div style={{ display: "flex"}}>
+      <div id="map" style={{ display: "flex", flex: "6", height: '600px', border: '1px solid #000', marginLeft: '10px' }}></div>
+      <div style={{ display: "flex", flex: "2", flexDirection:"column", height: '600px', marginLeft: '10px', marginRight: "10px"}}>
+      <h2>📍 검색 결과</h2>
+      <div style={{ overflowY: "auto"}}>
+      {places.length === 0 ? (
+        <p className="no-results">검색 결과가 없습니다.</p>
+      ) : (
+        <ul className="search-results-list">
           {places.map((place, index) => (
-            <li key={index} style={{ marginBottom: '10px' }}>
-              <strong>{place.place_name}</strong><br />
-              주소: {place.road_address_name || place.address_name}<br />
-              전화번호: {place.phone || '전화번호 없음'}<br />
-              <a href={place.place_url} target="_blank" rel="noopener noreferrer">지도에서 보기</a>
+            <li key={index} className="search-result-item">
+              <div className="search-result-header">
+                <strong>{place.place_name}</strong>
+              </div>
+              <div className="search-result-info">
+                <p>📍 {place.road_address_name || place.address_name}</p>
+                <p>📞 {place.phone || '전화번호 없음'}</p>
+              </div>
+              <a href={place.place_url} target="_blank" rel="noopener noreferrer" className="view-map-btn">
+                🗺 자세히
+              </a>
             </li>
           ))}
         </ul>
+      )}
       </div>
-    </div>
+      </div>
+      </div>
+      </div>
+      
   );
 };
 
