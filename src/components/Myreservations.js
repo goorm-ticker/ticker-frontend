@@ -17,7 +17,8 @@ const MyReservations = () => {
         });
         if (!response.ok) throw new Error("예약 내역을 불러오는 중 오류 발생");
         const data = await response.json();
-        setReservations(data);
+        const activeReservations = data.filter(res => res.status !== "CANCELLED");
+        setReservations(activeReservations);
       } catch (error) {
         setError("예약 정보를 가져오지 못했습니다.");
       } finally {
